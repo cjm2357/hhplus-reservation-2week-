@@ -1,10 +1,10 @@
-package com.example.lecture_reservation.lecture;
+package com.example.lecture_reservation.lecture.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @Getter
 @Setter
 public class ApplyInfo {
@@ -14,6 +14,7 @@ public class ApplyInfo {
     private int lectureId;
 
     private int userCnt;
+
 
     @Builder
     public ApplyInfo(int lectureId, int userCnt) {

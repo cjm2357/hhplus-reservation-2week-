@@ -1,8 +1,13 @@
 package com.example.lecture_reservation.lecture;
 
+import com.example.lecture_reservation.lecture.domain.ApplyHistory;
+import com.example.lecture_reservation.lecture.domain.Lecture;
+import com.example.lecture_reservation.lecture.dto.ApplyHistoryResponseDto;
+import com.example.lecture_reservation.lecture.dto.ApplyRequestDto;
+import com.example.lecture_reservation.lecture.dto.ApplyResponseDto;
+import com.example.lecture_reservation.lecture.dto.LectureResponseDto;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -15,16 +20,9 @@ public class LectureController {
         this.lectureService = lectureService;
     }
 
-    /**
-     * 조건
-     * 1.동일한 신청자는 한 번의 수강 신청만 성공할 수 있습니다.
-     * 2.특정 userId 로 선착순으로 제공되는 특강을 신청하는 API 를 작성합니다.
-     * 3.특강은 4월 20일 토요일 1시 에 열리며, 선착순 30명만 신청 가능합니다.
-     * 4.이미 신청자가 30명이 초과되면 이후 신청자는 요청을 실패합니다.
-     * 5.어떤 유저가 특강을 신청했는지 히스토리를 저장해야한다.
-     * */
+
     @PostMapping("/apply")
-    public ApplyResponseDto applyLecture(ApplyRequestDto dto) throws Exception {
+    public ApplyResponseDto applyLecture(@RequestBody ApplyRequestDto dto) throws Exception {
         if (dto.getUserId() == null) throw new Exception("강의ID가 없습니다.");
         return lectureService.applyLecture(dto.getUserId(), dto.toEntity());
     }
@@ -35,8 +33,8 @@ public class LectureController {
      * 2.특강 신청에 성공한 사용자는 성공했음을, 특강 등록자 명단에 없는 사용자는 실패했음을 반환합니다. (true, false)
      * */
     @GetMapping("/application/{userId}")
-    public boolean success(@PathVariable int userId) {
-        return lectureService.checkSuccess(userId);
+    public ApplyHistoryResponseDto success(@PathVariable int userId) {
+        return lectureService.readApplyHistories(userId);
     }
 
     /**
@@ -47,7 +45,7 @@ public class LectureController {
      *  추가고려 -> 추가로 정원이 특강마다 다르다면 어떻게 처리할것인가..? 고민해 보셔라~
      * */
     @GetMapping("/")
-    public List<Lecture> selectLecture() {
+    public LectureResponseDto selectLecture() {
         return lectureService.readLectures();
     }
 

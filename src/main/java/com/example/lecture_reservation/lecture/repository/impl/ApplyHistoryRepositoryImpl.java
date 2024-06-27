@@ -1,5 +1,7 @@
-package com.example.lecture_reservation.lecture;
+package com.example.lecture_reservation.lecture.repository.impl;
 
+import com.example.lecture_reservation.lecture.domain.ApplyHistory;
+import com.example.lecture_reservation.lecture.repository.ApplyHistoryRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

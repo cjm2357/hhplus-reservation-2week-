@@ -1,5 +1,13 @@
 package com.example.lecture_reservation.lecture;
 
+import com.example.lecture_reservation.lecture.domain.ApplyHistory;
+import com.example.lecture_reservation.lecture.domain.ApplyInfo;
+import com.example.lecture_reservation.lecture.domain.Lecture;
+import com.example.lecture_reservation.lecture.dto.ApplyHistoryResponseDto;
+import com.example.lecture_reservation.lecture.dto.ApplyResponseDto;
+import com.example.lecture_reservation.lecture.repository.ApplyHistoryRepository;
+import com.example.lecture_reservation.lecture.repository.ApplyInfoRepository;
+import com.example.lecture_reservation.lecture.repository.LectureRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -7,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,11 +30,11 @@ public class LectureServiceUnitTest {
 
 
     @Mock
-    LectureRepositoryImpl lectureRepository;
+    LectureRepository lectureRepository;
     @Mock
-    ApplyInfoRepositoryImpl applyInfoRepository;
+    ApplyInfoRepository applyInfoRepository;
     @Mock
-    ApplyHistoryRepositoryImpl applyHistoryRepository;
+    ApplyHistoryRepository applyHistoryRepository;
 
     @InjectMocks
     LectureService lectureService;
@@ -39,6 +49,7 @@ public class LectureServiceUnitTest {
      * */
 
     //특강 신청 성공
+    //case 1
     @Test
     void 특강_신청_성공() throws Exception{
         //given
@@ -50,7 +61,8 @@ public class LectureServiceUnitTest {
         Lecture lecture = new Lecture();
         lecture.setId(lectureId);
         lecture.setSeat(30);
-        lecture.setDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
+        lecture.setDate(LocalDateTime.of(2024, 6, 01, 10, 0 ,0));
+        lecture.setApplyDate(LocalDateTime.of(2024, 5, 01, 10, 0 ,0));
         lecture.setTitle("TEST");
         Optional<Lecture> optional = Optional.of(lecture);
 
@@ -64,6 +76,7 @@ public class LectureServiceUnitTest {
     }
 
 
+    //case 2
     @Test
     void 특강_신청_정원초과_실패() throws Exception{
         //given
@@ -75,7 +88,8 @@ public class LectureServiceUnitTest {
         Lecture lecture = new Lecture();
         lecture.setId(lectureId);
         lecture.setSeat(10);
-        lecture.setDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
+        lecture.setDate(LocalDateTime.of(2024, 02, 01, 10, 0 ,0));
+        lecture.setApplyDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
         lecture.setTitle("TEST");
         Optional<Lecture> optional = Optional.of(lecture);
 
@@ -88,6 +102,7 @@ public class LectureServiceUnitTest {
         assertEquals(false, dto.isCompleted());
     }
 
+    //case 3
     @Test
     void 특강_신청_특정날짜_이전_실패() throws Exception{
         //given
@@ -100,6 +115,7 @@ public class LectureServiceUnitTest {
         lecture.setId(lectureId);
         lecture.setSeat(10);
         lecture.setDate(LocalDateTime.of(2024, 12, 12, 10, 0 ,0));
+        lecture.setApplyDate(LocalDateTime.of(2024, 12, 11, 10, 0 ,0));
         lecture.setTitle("TEST");
         Optional<Lecture> optional = Optional.of(lecture);
 
@@ -113,7 +129,8 @@ public class LectureServiceUnitTest {
         //then
         assertEquals("신청 시간 전 입니다.", exception.getMessage());
     }
-    
+
+    //case 4
     @Test
     void 같은날_다른_특강_신청시_실패() throws Exception{
         //given
@@ -125,12 +142,33 @@ public class LectureServiceUnitTest {
         Lecture lecture = new Lecture();
         lecture.setId(lectureId);
         lecture.setSeat(30);
-        lecture.setDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
+        lecture.setDate(LocalDateTime.of(2024, 2, 01, 10, 0 ,0));
+        lecture.setApplyDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
         lecture.setTitle("TEST");
         Optional<Lecture> optional = Optional.of(lecture);
 
+
+        int lectureId2 = 2;
+        Lecture lecture2 = new Lecture();
+        lecture2.setId(lectureId2);
+        lecture2.setSeat(30);
+        lecture2.setDate(LocalDateTime.of(2024, 2, 01, 10, 0 ,0));
+        lecture2.setApplyDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
+        lecture2.setTitle("TEST2");
+        ApplyHistory applyHistory = ApplyHistory.builder()
+                .id(1)
+                .applyTime(LocalDateTime.of(2024, 01, 01, 10, 0 ,0))
+                .userId(userId)
+                .completed(true)
+                .lecture(lecture2)
+                .build();
+
+        List<ApplyHistory> applyHistories = new ArrayList<>();
+        applyHistories.add(applyHistory);
+
+
         when(lectureRepository.findById(anyInt())).thenReturn(optional);
-        when(applyInfoRepository.findById(anyInt())).thenReturn(Optional.of(applyInfo));
+        when(applyHistoryRepository.findByUserId(anyInt())).thenReturn(applyHistories);
 
         //when
         Throwable exception = assertThrows(Exception.class, () -> {
@@ -143,19 +181,62 @@ public class LectureServiceUnitTest {
 
     /**
      * 히스토리 테스트
-     * 1. 특강신청 성공시 히스토리  성공으로 저장 여부
-     * 2. 특강신청 실패시 히스토리 실패로 저장 여부
-     * 3. 특강신청 에러시 히스토리 실패로 저장 여부
-     * 4. 요청 타입이 다를때 실패
-     * 5. lecture_id가 없을때 저장 실패
-     * 6. user_id가 없을 때 저장 실패
-     *
+     * 1. 히스토리 조회 성공 여부
      * */
+
+    //case 1
+    @Test
+    void 히스토리_조회_성공 () throws Exception {
+        //given
+        int userId = 1;
+
+        Lecture lecture = new Lecture();
+        lecture.setId(1);
+        lecture.setSeat(30);
+        lecture.setDate(LocalDateTime.of(2024, 2, 01, 10, 0 ,0));
+        lecture.setApplyDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
+        lecture.setTitle("TEST");
+
+        List<ApplyHistory> expectApplyHistories = new ArrayList<>();
+        ApplyHistory applyHistory = ApplyHistory.builder()
+                .id(1)
+                .lecture(lecture)
+                .applyTime(LocalDateTime.of(2024, 01, 01, 10, 10 ,0))
+                .completed(true)
+                .userId(1)
+                .build();
+        expectApplyHistories.add(applyHistory);
+        when(applyHistoryRepository.findByUserId(anyInt())).thenReturn(expectApplyHistories);
+
+        //when
+        ApplyHistoryResponseDto responseDto = lectureService.readApplyHistories(userId);
+
+        //then
+        ApplyHistoryResponseDto.History history = responseDto.getHistories().get(0);
+        assertEquals("TEST", history.getLectureTitle());
+        assertEquals(true, history.isCompleted());
+
+    }
 
     /**
      * 걍의 조회 테스트
      * 1. 강의 조회 성공
-     * 2. 특정 날짜에 강의가 없는 경우
-     *
      * */
+    @Test
+    void 강의_조회_성공() throws Exception {
+        //given
+        Lecture lecture = new Lecture();
+        lecture.setId(1);
+        lecture.setSeat(30);
+        lecture.setDate(LocalDateTime.of(2024, 2, 01, 10, 0 ,0));
+        lecture.setApplyDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
+        lecture.setTitle("TEST");
+        List<Lecture> expectedLectureList = new ArrayList<>();
+        expectedLectureList.add(lecture);
+        when(lectureRepository.findAll()).thenReturn(expectedLectureList);
+        //when
+        List<Lecture> lecturesList = lectureRepository.findAll();
+        //then
+        assertEquals(expectedLectureList, lecturesList);
+    }
 }

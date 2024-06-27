@@ -1,13 +1,20 @@
 package com.example.lecture_reservation.lecture;
 
+import com.example.lecture_reservation.lecture.domain.ApplyHistory;
+import com.example.lecture_reservation.lecture.domain.Lecture;
+import com.example.lecture_reservation.lecture.dto.ApplyHistoryResponseDto;
+import com.example.lecture_reservation.lecture.dto.ApplyRequestDto;
+import com.example.lecture_reservation.lecture.dto.ApplyResponseDto;
+import com.example.lecture_reservation.lecture.dto.LectureResponseDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -33,10 +40,8 @@ public class LectureControllerUnitTest {
     @MockBean
     LectureService lectureService;
 
-    @BeforeEach
-    void setUp() {
-
-    }
+    @Autowired
+    private ObjectMapper objectMapper;
 
 
     //특강 신청 성공
@@ -52,9 +57,12 @@ public class LectureControllerUnitTest {
 
         when(lectureService.applyLecture(anyInt(), any())).thenReturn(responseDto);
 
+
         //when
         //then
-        mvc.perform(post("/lectures/apply"))
+        mvc.perform(post("/lectures/apply")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.completed").value(true));
 
@@ -63,14 +71,36 @@ public class LectureControllerUnitTest {
     @Test
     void 히스토리_조회_성공 () throws Exception {
         //given
-        Integer userId = 1;
-        when(lectureService.checkSuccess(anyInt())).thenReturn(true);
+        int userId = 1;
+
+        Lecture lecture = new Lecture();
+        lecture.setId(1);
+        lecture.setSeat(30);
+        lecture.setDate(LocalDateTime.of(2024, 2, 01, 10, 0 ,0));
+        lecture.setApplyDate(LocalDateTime.of(2024, 01, 01, 10, 0 ,0));
+        lecture.setTitle("TEST");
+
+        List<ApplyHistory> expectApplyHistories = new ArrayList<>();
+        ApplyHistory applyHistory = ApplyHistory.builder()
+                .id(1)
+                .lecture(lecture)
+                .applyTime(LocalDateTime.of(2024, 01, 01, 10, 10 ,0))
+                .completed(true)
+                .userId(1)
+                .build();
+        expectApplyHistories.add(applyHistory);
+
+        ApplyHistoryResponseDto responseDto = ApplyHistoryResponseDto.builder()
+                .applyHistories(expectApplyHistories)
+                .build();
+
+        when(lectureService.readApplyHistories(anyInt())).thenReturn(responseDto);
 
         //when
         //then
         mvc.perform(get("/lectures/application/" + userId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").value(true));
+                .andExpect(jsonPath("$.histories[0].completed").value(true));
     }
 
     @Test
@@ -79,24 +109,30 @@ public class LectureControllerUnitTest {
         Lecture lecture1 = new Lecture();
         lecture1.setId(1);
         lecture1.setTitle("A");
-        lecture1.setDate(LocalDateTime.of(2024,05,01,12,0,0));
+        lecture1.setDate(LocalDateTime.of(2024,05,01,13,0,0));
+        lecture1.setApplyDate(LocalDateTime.of(2024,05,01,12,0,0));
         lecture1.setSeat(30);
 
         Lecture lecture2 = new Lecture();
         lecture2.setId(2);
         lecture2.setTitle("B");
-        lecture2.setDate(LocalDateTime.of(2024,06,01,12,0,0));
+        lecture2.setDate(LocalDateTime.of(2024,06,02,12,0,0));
+        lecture2.setApplyDate(LocalDateTime.of(2024,06,01,12,0,0));
         lecture2.setSeat(20);
         List<Lecture> expectList = new ArrayList<>();
         expectList.add(lecture1);
         expectList.add(lecture2);
-        when(lectureService.readLectures()).thenReturn(expectList);
+
+        LectureResponseDto responseDto = LectureResponseDto.builder()
+                .lectureList(expectList)
+                .build();
+        when(lectureService.readLectures()).thenReturn(responseDto);
 
         //when
         //then
         mvc.perform(get("/lectures/"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", Matchers.hasSize(2)));
+                .andExpect(jsonPath("$.lectureList", Matchers.hasSize(2)));
 
     }
 
