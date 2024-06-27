@@ -1,34 +1,55 @@
 package com.example.lecture_reservation.lecture;
 
+import com.example.lecture_reservation.lecture.domain.ApplyHistory;
+import com.example.lecture_reservation.lecture.domain.ApplyInfo;
+import com.example.lecture_reservation.lecture.domain.Lecture;
+import com.example.lecture_reservation.lecture.dto.ApplyHistoryResponseDto;
+import com.example.lecture_reservation.lecture.dto.ApplyResponseDto;
+import com.example.lecture_reservation.lecture.dto.LectureResponseDto;
+import com.example.lecture_reservation.lecture.repository.ApplyHistoryRepository;
+import com.example.lecture_reservation.lecture.repository.ApplyInfoRepository;
+import com.example.lecture_reservation.lecture.repository.LectureRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class LectureService {
 
-    private LectureRepositoryImpl lectureRepository;
-    private ApplyInfoRepositoryImpl applyInfoRepository;
-    private ApplyHistoryRepositoryImpl applyHistoryRepository;
+    private LectureRepository lectureRepository;
+    private ApplyInfoRepository applyInfoRepository;
+    private ApplyHistoryRepository applyHistoryRepository;
 
 
-    public LectureService (LectureRepositoryImpl lectureRepository, ApplyInfoRepositoryImpl applyInfoRepository, ApplyHistoryRepositoryImpl applyHistoryRepository) {
+    public LectureService (LectureRepository lectureRepository, ApplyInfoRepository applyInfoRepository, ApplyHistoryRepository applyHistoryRepository) {
         this.lectureRepository = lectureRepository;
         this.applyInfoRepository = applyInfoRepository;
         this.applyHistoryRepository = applyHistoryRepository;
     }
 
     @Transactional
-    public ApplyResponseDto applyLecture(int userId ,ApplyInfo applyInfo) throws Exception {
+    public ApplyResponseDto applyLecture(int userId , ApplyInfo applyInfo) throws Exception {
 
-//        ApplyHistory applyHistory = applyHistoryRepository.
 
         Lecture lecture = getLectureInfo(applyInfo.getLectureId());
         if (lecture == null) throw new Exception("일치하는 강의정보가 없습니다.");
-        if (lecture.getDate().isAfter(LocalDateTime.now())) throw new Exception("신청 시간 전 입니다.");
+        if (lecture.getApplyDate().isAfter(LocalDateTime.now())) throw new Exception("신청 시간 전 입니다.");
+
+        List<ApplyHistory> applyHistories = applyHistoryRepository.findByUserId(userId);
+        applyHistories = applyHistories.stream().filter(h -> {
+            Date registeredLectureDate = convertDate(h.getLecture().getDate());
+            Date newLectureDate = convertDate(lecture.getDate());
+            return registeredLectureDate.equals(newLectureDate);
+        }).collect(Collectors.toList());
+
+        if (applyHistories.size() > 0) throw new Exception("같은 날짜에 신청한 강의가 존재합니다.");
 
         int maxUser = lecture.getSeat();
         int curUserCnt = getApplyInfoCnt(applyInfo.getLectureId());
@@ -49,7 +70,8 @@ public class LectureService {
         } finally {
             ApplyHistory applyHistory = ApplyHistory.builder()
                     .userId(userId)
-                    .lectureId(applyInfo.getLectureId())
+//                    .lectureId(applyInfo.getLectureId())
+                    .lecture(lecture)
                     .applyTime(LocalDateTime.now())
                     .completed(isSuccess)
                     .build();
@@ -84,13 +106,22 @@ public class LectureService {
     }
 
 
-    public boolean checkSuccess(int userId) {
+    public ApplyHistoryResponseDto readApplyHistories(int userId) {
         List<ApplyHistory> applyHistories = applyHistoryRepository.findByUserId(userId);
-        if (applyHistories.isEmpty()) return false;
-        return true;
+
+        return ApplyHistoryResponseDto.builder()
+                .applyHistories(applyHistories)
+                .build();
     }
 
-    public List<Lecture> readLectures() {
-        return lectureRepository.findAll();
+    public LectureResponseDto readLectures() {
+        return LectureResponseDto.builder()
+                    .lectureList(lectureRepository.findAll())
+                    .build();
+    }
+
+    private Date convertDate(LocalDateTime localDateTime) {
+        ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
+        return Date.from(zonedDateTime.toInstant());
     }
 }

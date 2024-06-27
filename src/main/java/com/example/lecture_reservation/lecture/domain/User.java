@@ -1,4 +1,4 @@
-package com.example.lecture_reservation.lecture;
+package com.example.lecture_reservation.lecture.domain;
 
 import jakarta.persistence.*;
 

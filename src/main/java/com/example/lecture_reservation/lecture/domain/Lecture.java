@@ -1,8 +1,7 @@
-package com.example.lecture_reservation.lecture;
+package com.example.lecture_reservation.lecture.domain;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -20,5 +19,8 @@ public class Lecture {
 
     private LocalDateTime date;
 
+    private LocalDateTime applyDate;
+
     private int seat;
+
 }

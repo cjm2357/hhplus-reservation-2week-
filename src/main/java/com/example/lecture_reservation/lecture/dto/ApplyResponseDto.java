@@ -1,14 +1,11 @@
-package com.example.lecture_reservation.lecture;
+package com.example.lecture_reservation.lecture.dto;
 
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class ApplyResponseDto {
-
     private boolean completed;
     @Builder
     public ApplyResponseDto(boolean completed) {

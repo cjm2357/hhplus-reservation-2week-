@@ -1,4 +1,4 @@
-package com.example.lecture_reservation.lecture;
+package com.example.lecture_reservation.lecture.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,15 +14,17 @@ public class ApplyHistory {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
     private int userId;
-    private int lectureId;
     private LocalDateTime applyTime;
     private boolean completed;
 
+    @ManyToOne
+    @JoinColumn(name = "lecture_id", referencedColumnName = "id")
+    private Lecture lecture;
 
     @Builder
-    public ApplyHistory(int id, int lectureId, int userId, LocalDateTime applyTime, boolean completed) {
+    public ApplyHistory(int id, Lecture lecture, int userId, LocalDateTime applyTime, boolean completed) {
         this.id = id;
-        this.lectureId = lectureId;
+        this.lecture = lecture;
         this.userId = userId;
         this.applyTime = applyTime;
         this.completed = completed;
